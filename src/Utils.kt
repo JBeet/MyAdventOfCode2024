@@ -6,7 +6,7 @@ import kotlin.io.path.readText
 /**
  * Reads lines from the given input txt file.
  */
-fun readInput(name: String) = Path("src/$name.txt").readText().trim().lines()
+fun readInput(name: String) = Path("src/$name.txt").readText().trim()
 
 /**
  * Converts string to md5 hash.
@@ -15,11 +15,11 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
     .toString(16)
     .padStart(32, '0')
 
-/**
- * The cleaner shorthand for printing output.
- */
-fun Any?.println() = println(this)
 
-fun linesAsIntArrays(input: List<String>) = input.filter { it.isNotBlank() }.map { line ->
-    line.split(Regex("\\s+")).map { it.toInt() }.toIntArray()
-}
+fun String.nonEmptyLines(): List<String> = lines().filter { it.isNotBlank() }
+fun String.findWithRegex(pattern: String) = Regex(pattern).findAll(this).map { it.value }
+fun String.ints() = findWithRegex("""-?\d+""").map { it.toInt() }.toList()
+fun String.longs() = findWithRegex("""-?\d+""").map { it.toLong() }.toList()
+fun String.paragraphs(): List<String> = split(Regex("\\R\\R"))
+fun String.intLists(): List<List<Int>> = nonEmptyLines().map { it.ints() }
+fun String.longLists() = nonEmptyLines().map { it.longs() }
