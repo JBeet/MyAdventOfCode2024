@@ -11,15 +11,42 @@ fun main() {
 
 object Day02WithStateEnum {
     fun part1(input: String): Int =
-        input.intLists().count { list -> list.stateSequence().all { it.isValidPart1 } }
+        input.intLists().count { list -> list.stateSequence().isValidPart1 }
 
     fun part2(input: String) =
-        input.intLists().count { list -> list.stateSequence().none { it == State.Invalid } }
+        input.intLists().count { list -> list.stateSequence() != State.Invalid }
 
-    private fun List<Int>.stateSequence() =
-        asSequence().windowed(3).runningFold(State.First) { acc, window ->
-            acc.nextState(window[0], window[1], window[2])
+    private fun List<Int>.stateSequence(): State {
+        println()
+        print(stateColor(State.First).fgCode())
+        print(this[0])
+        print(" ")
+        print(this[1])
+        print(" ")
+        return asSequence().windowed(3).fold(State.First) { acc, window ->
+            acc.nextState(window[0], window[1], window[2]).also {
+                print(stateColor(it).fgCode())
+                print(window[2])
+                print(" ")
+            }
         }
+    }
+
+    private fun stateColor(state: State) = when (state) {
+        State.First -> AnsiColor.BRIGHT_BLACK
+        State.KnownIncreasing -> AnsiColor.BRIGHT_MAGENTA
+        State.KnownDecreasing -> AnsiColor.BRIGHT_CYAN
+        State.KnownIncreasingDroppedPreviousOrEarlier -> AnsiColor.MAGENTA
+        State.KnownDecreasingDroppedPreviousOrEarlier -> AnsiColor.CYAN
+        State.KnownIncreasingDroppedPrevious -> AnsiColor.MAGENTA
+        State.KnownDecreasingDroppedPrevious -> AnsiColor.CYAN
+        State.DroppedPreviousForIncreaseOrEarlierForDecrease -> AnsiColor.WHITE
+        State.DroppedPreviousForDecreaseOrEarlierForIncrease -> AnsiColor.WHITE
+        State.DroppedEarlierDirectionUnknown -> AnsiColor.WHITE
+        State.KnownIncreasingDroppedEarlier -> AnsiColor.MAGENTA
+        State.KnownDecreasingDroppedEarlier -> AnsiColor.CYAN
+        State.Invalid -> AnsiColor.RED
+    }
 
     enum class State(val isValidPart1: Boolean) {
         First(true) {
