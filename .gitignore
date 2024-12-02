@@ -3,3 +3,6 @@
 build
 src/**/*.txt
 local.properties
+.gradle
+gradle
+gradlew*
