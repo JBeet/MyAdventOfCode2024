@@ -1,36 +1,40 @@
-import kotlin.math.absoluteValue
+import kotlin.math.abs
 
 fun main() {
     val testInput = readInput("Day02_test")
     check(Day02WithStateEnum.part1(testInput) == 2) { "Expected 2 but was " + Day02WithStateEnum.part1(testInput) }
-    val input = readInput("Day02")
-    println(Day02WithStateEnum.part1(input))
     check(Day02WithStateEnum.part2(testInput) == 4) { "Expected 4 but was " + Day02WithStateEnum.part2(testInput) }
-    println(Day02WithStateEnum.part2(input))
+
+    val input = readInput("Day02")
+    Day02WithStateEnum.showStates(input)
+    println()
+    println("Solution Part 1: " + Day02WithStateEnum.part1(input))
+    println("Solution Part 2: " + Day02WithStateEnum.part2(input))
 }
 
 object Day02WithStateEnum {
     fun part1(input: String): Int =
-        input.intLists().count { list -> list.stateSequence().isValidPart1 }
+        input.intLists().count { list -> list.allStates().all { it.isValidPart1 } }
 
     fun part2(input: String) =
-        input.intLists().count { list -> list.stateSequence() != State.Invalid }
+        input.intLists().count { list -> list.allStates().none { it == State.Invalid } }
 
-    private fun List<Int>.stateSequence(): State {
-        println()
-        print(stateColor(State.First).fgCode())
-        print(this[0])
-        print(" ")
-        print(this[1])
-        print(" ")
-        return asSequence().windowed(3).fold(State.First) { acc, window ->
-            acc.nextState(window[0], window[1], window[2]).also {
-                print(stateColor(it).fgCode())
-                print(window[2])
-                print(" ")
+    fun showStates(input: String) {
+        input.intLists().forEach { list ->
+            print(stateColor(State.First).fgCode() + list[0] + " ")
+            list.allStates().forEachIndexed { index, state ->
+                print(stateColor(state).fgCode() + list[index + 1] + " ")
             }
+            println(AnsiColor.DEFAULT.fgCode())
         }
     }
+
+    private fun List<Int>.allStates(): Sequence<State> =
+        asSequence().windowed(3).runningFold(State.First) { acc, window ->
+            acc.nextState(window)
+        }
+
+    private fun State.nextState(window: List<Int>) = nextState(window[0], window[1], window[2])
 
     private fun stateColor(state: State) = when (state) {
         State.First -> AnsiColor.BRIGHT_BLACK
@@ -50,101 +54,98 @@ object Day02WithStateEnum {
 
     enum class State(val isValidPart1: Boolean) {
         First(true) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State = when {
-                !isInRange(prevPrevValue, prevValue) -> dropFirstOrSecond(prevPrevValue, prevValue, i)
-                prevValue > prevPrevValue -> startedWithIncrease(prevPrevValue, prevValue, i)
-                else -> startedWithDecrease(prevPrevValue, prevValue, i)
-            }
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    !isInRange(v0, v1) -> dropV0orV1(v0, v1, v2)
+                    v1 > v0 -> startedWithIncrease(v0, v1, v2)
+                    else -> startedWithDecrease(v0, v1, v2)
+                }
 
-            private fun dropFirstOrSecond(prevPrevValue: Int, prevValue: Int, i: Int): State {
-                val prevInRange = isInRange(prevValue, i)
-                return when {
-                    !isInRange(prevPrevValue, i) -> when {
-                        !prevInRange -> Invalid
-                        i > prevValue -> KnownIncreasingDroppedEarlier
+            private fun dropV0orV1(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    !isInRange(v0, v2) -> when {
+                        !isInRange(v1, v2) -> Invalid
+                        v1 < v2 -> KnownIncreasingDroppedEarlier
                         else -> KnownDecreasingDroppedEarlier
                     }
 
-                    i > prevPrevValue ->
-                        if (prevInRange && i < prevValue)
+                    v0 < v2 ->
+                        if (isInRange(v1, v2) && v1 > v2)
                             DroppedEarlierDirectionUnknown
                         else
                             KnownIncreasingDroppedEarlier
 
                     else ->
-                        if (prevInRange && i > prevValue)
+                        if (isInRange(v1, v2) && v1 < v2)
                             DroppedEarlierDirectionUnknown
                         else
                             KnownDecreasingDroppedEarlier
                 }
-            }
 
-            private fun startedWithIncrease(prevPrevValue: Int, prevValue: Int, i: Int): State {
-                val prevInRange = isInRange(prevValue, i)
-                return when {
-                    prevInRange && (i > prevValue) -> KnownIncreasing
-                    prevInRange -> DroppedPreviousForIncreaseOrEarlierForDecrease
-                    isInRange(i, prevPrevValue) && i < prevPrevValue -> DroppedPreviousForIncreaseOrEarlierForDecrease
+            private fun startedWithIncrease(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    isInRange(v1, v2) && (v1 < v2) -> KnownIncreasing
+                    isInRange(v1, v2) -> DroppedPreviousForIncreaseOrEarlierForDecrease
+                    isInRange(v0, v2) && v0 > v2 -> DroppedPreviousForIncreaseOrEarlierForDecrease
                     else -> KnownIncreasingDroppedPrevious
                 }
-            }
 
-            private fun startedWithDecrease(prevPrevValue: Int, prevValue: Int, i: Int): State {
-                val prevInRange = isInRange(prevValue, i)
-                return when {
-                    prevInRange && i < prevValue -> KnownDecreasing
-                    prevInRange -> DroppedPreviousForDecreaseOrEarlierForIncrease
-                    isInRange(prevPrevValue, i) && i > prevPrevValue -> DroppedPreviousForDecreaseOrEarlierForIncrease
+            private fun startedWithDecrease(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    isInRange(v1, v2) && v1 > v2 -> KnownDecreasing
+                    isInRange(v1, v2) -> DroppedPreviousForDecreaseOrEarlierForIncrease
+                    isInRange(v0, v2) && v0 < v2 -> DroppedPreviousForDecreaseOrEarlierForIncrease
                     else -> KnownDecreasingDroppedPrevious
                 }
-            }
         },
         KnownIncreasing(true) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State = when {
-                isInRange(i, prevValue) && i > prevValue -> KnownIncreasing
-                isInRange(i, prevPrevValue) && i > prevPrevValue -> KnownIncreasingDroppedPreviousOrEarlier
-                else -> KnownIncreasingDroppedPrevious
-            }
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    isInRange(v1, v2) && v1 < v2 -> KnownIncreasing
+                    isInRange(v0, v2) && v0 < v2 -> KnownIncreasingDroppedPreviousOrEarlier
+                    else -> KnownIncreasingDroppedPrevious
+                }
         },
         KnownDecreasing(true) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State = when {
-                isInRange(i, prevValue) && i < prevValue -> KnownDecreasing
-                isInRange(i, prevPrevValue) && i < prevPrevValue -> KnownDecreasingDroppedPreviousOrEarlier
-                else -> KnownDecreasingDroppedPrevious
-            }
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    isInRange(v1, v2) && v1 > v2 -> KnownDecreasing
+                    isInRange(v0, v2) && v0 > v2 -> KnownDecreasingDroppedPreviousOrEarlier
+                    else -> KnownDecreasingDroppedPrevious
+                }
         },
         KnownIncreasingDroppedPreviousOrEarlier(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if ((isInRange(i, prevValue) && i > prevValue) || (isInRange(i, prevPrevValue) && i > prevPrevValue))
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if ((isInRange(v1, v2) && v1 < v2) || (isInRange(v0, v2) && v0 < v2))
                     KnownIncreasingDroppedEarlier
                 else
                     Invalid
         },
         KnownDecreasingDroppedPreviousOrEarlier(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if ((isInRange(i, prevValue) && i < prevValue) || (isInRange(i, prevPrevValue) && i < prevPrevValue))
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if ((isInRange(v1, v2) && v1 > v2) || (isInRange(v0, v2) && v0 > v2))
                     KnownDecreasingDroppedEarlier
                 else
                     Invalid
         },
         KnownIncreasingDroppedPrevious(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if (isInRange(i, prevPrevValue) && i > prevPrevValue)
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if (isInRange(v0, v2) && v0 < v2)
                     KnownIncreasingDroppedEarlier
                 else
                     Invalid
         },
         KnownDecreasingDroppedPrevious(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if (isInRange(i, prevPrevValue) && i < prevPrevValue)
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if (isInRange(v0, v2) && v0 > v2)
                     KnownDecreasingDroppedEarlier
                 else
                     Invalid
         },
         DroppedPreviousForIncreaseOrEarlierForDecrease(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State {
-                val prevPrevOk = isInRange(i, prevPrevValue) && i > prevPrevValue
-                val prevOk = isInRange(i, prevValue) && i < prevValue
+            override fun nextState(v0: Int, v1: Int, v2: Int): State {
+                val prevPrevOk = isInRange(v0, v2) && v0 < v2
+                val prevOk = isInRange(v1, v2) && v1 > v2
                 return when {
                     prevPrevOk && prevOk -> DroppedEarlierDirectionUnknown
                     prevPrevOk -> KnownIncreasingDroppedEarlier
@@ -154,9 +155,9 @@ object Day02WithStateEnum {
             }
         },
         DroppedPreviousForDecreaseOrEarlierForIncrease(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State {
-                val prevPrevOk = isInRange(i, prevPrevValue) && i < prevPrevValue
-                val prevOk = isInRange(i, prevValue) && i > prevValue
+            override fun nextState(v0: Int, v1: Int, v2: Int): State {
+                val prevPrevOk = isInRange(v0, v2) && v0 > v2
+                val prevOk = isInRange(v1, v2) && v1 < v2
                 return when {
                     prevPrevOk && prevOk -> DroppedEarlierDirectionUnknown
                     prevPrevOk -> KnownDecreasingDroppedEarlier
@@ -166,32 +167,33 @@ object Day02WithStateEnum {
             }
         },
         DroppedEarlierDirectionUnknown(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State = when {
-                !isInRange(i, prevValue) -> Invalid
-                i > prevValue -> KnownIncreasingDroppedEarlier
-                else -> KnownDecreasingDroppedEarlier
-            }
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                when {
+                    !isInRange(v1, v2) -> Invalid
+                    v1 < v2 -> KnownIncreasingDroppedEarlier
+                    else -> KnownDecreasingDroppedEarlier
+                }
         },
         KnownIncreasingDroppedEarlier(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if (isInRange(i, prevValue) && i > prevValue)
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if (isInRange(v1, v2) && v1 < v2)
                     KnownIncreasingDroppedEarlier
                 else
                     Invalid
         },
         KnownDecreasingDroppedEarlier(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State =
-                if (isInRange(i, prevValue) && i < prevValue)
+            override fun nextState(v0: Int, v1: Int, v2: Int): State =
+                if (isInRange(v1, v2) && v1 > v2)
                     KnownDecreasingDroppedEarlier
                 else
                     Invalid
         },
         Invalid(false) {
-            override fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State = Invalid
+            override fun nextState(v0: Int, v1: Int, v2: Int): State = Invalid
         };
 
-        abstract fun nextState(prevPrevValue: Int, prevValue: Int, i: Int): State
+        abstract fun nextState(v0: Int, v1: Int, v2: Int): State
     }
 
-    private fun isInRange(a: Int, b: Int) = (a - b).absoluteValue in 1..3
+    private fun isInRange(a: Int, b: Int) = abs(a - b) in 1..3
 }
