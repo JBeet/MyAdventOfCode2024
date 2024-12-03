@@ -5,4 +5,4 @@ dependencies:
 
 settings:
   jvm:
-    mainClass: Day02Kt
+    mainClass: Day03Kt
