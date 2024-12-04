@@ -24,6 +24,14 @@ fun String.paragraphs(): List<String> = split(Regex("\\R\\R"))
 fun String.intLists(): List<List<Int>> = nonEmptyLines().map { it.ints() }
 fun String.longLists() = nonEmptyLines().map { it.longs() }
 
+fun verify(expected: Long, actual: Int) {
+    check(actual.toLong() == expected) { "Expected $expected but was $actual" }
+}
+
+fun verify(expected: Long, actual: Long) {
+    check(actual == expected) { "Expected $expected but was $actual" }
+}
+
 enum class AnsiColor(private val fg: Int, private val bg: Int) {
     BLACK(30, 40), RED(31, 41), GREEN(32, 42), YELLOW(33, 43), BLUE(34, 44),
     MAGENTA(35, 45), CYAN(36, 46), WHITE(37, 47),
