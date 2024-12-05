@@ -24,6 +24,23 @@ fun String.paragraphs(): List<String> = split(Regex("\\R\\R"))
 fun String.intLists(): List<List<Int>> = nonEmptyLines().map { it.ints() }
 fun String.longLists() = nonEmptyLines().map { it.longs() }
 
+fun <E> List<E>.sublistBefore(item: E, missingDelimiterValue: List<E> = this): List<E> {
+    val pos = indexOf(item)
+    return if (pos < 0) missingDelimiterValue else subList(0, pos)
+}
+
+fun <E> List<E>.sublistAfter(item: E, missingDelimiterValue: List<E> = this): List<E> {
+    val pos = indexOf(item)
+    return if (pos < 0) missingDelimiterValue else subList(pos + 1, size)
+}
+
+fun <E> MutableList<E>.swapItem(itemA: E, itemB: E) = swapIndex(indexOf(itemA), indexOf(itemB))
+fun <E> MutableList<E>.swapIndex(indexA: Int, indexB: Int) {
+    val temp = this[indexA]
+    this[indexA] = this[indexB]
+    this[indexB] = temp
+}
+
 fun verify(expected: Long, actual: Int) {
     check(actual.toLong() == expected) { "Expected $expected but was $actual" }
 }
