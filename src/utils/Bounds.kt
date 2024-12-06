@@ -1,10 +1,10 @@
 package utils
 
 interface Bounds {
-    val rowRange: LongRange
-    val columnRange: LongRange
-    fun hasRow(r: Long): Boolean
-    fun hasColumn(c: Long): Boolean
+    val rowRange: IntRange
+    val columnRange: IntRange
+    fun hasRow(r: Int): Boolean
+    fun hasColumn(c: Int): Boolean
     operator fun contains(p: Position): Boolean = hasRow(p.row) && hasColumn(p.column)
 }
 
@@ -15,18 +15,16 @@ class DetectBounds(positions: Iterable<Position>) : Bounds {
     private val maxRow = rowIndices.last()
     private val minColumn = colIndices.first()
     private val maxColumn = colIndices.last()
-    override val rowRange: LongRange = minRow..maxRow
-    override val columnRange: LongRange = minColumn..maxColumn
-    override fun hasRow(r: Long) = r in rowIndices
-    override fun hasColumn(c: Long) = c in colIndices
+    override val rowRange: IntRange = minRow..maxRow
+    override val columnRange: IntRange = minColumn..maxColumn
+    override fun hasRow(r: Int) = r in rowIndices
+    override fun hasColumn(c: Int) = c in colIndices
 }
 
-data class ZeroBasedBounds(val height: Long, val width: Long) : Bounds {
-    constructor(height: Int, width: Int) : this(height.toLong(), width.toLong())
-
-    override val rowRange: LongRange = (0..<height)
-    override val columnRange: LongRange = (0..<width)
-    override fun hasRow(r: Long): Boolean = r in rowRange
-    override fun hasColumn(c: Long): Boolean = c in columnRange
+data class ZeroBasedBounds(val height: Int, val width: Int) : Bounds {
+    override val rowRange: IntRange = (0..<height)
+    override val columnRange: IntRange = (0..<width)
+    override fun hasRow(r: Int): Boolean = r in rowRange
+    override fun hasColumn(c: Int): Boolean = c in columnRange
     fun swap(): ZeroBasedBounds = ZeroBasedBounds(width, height)
 }

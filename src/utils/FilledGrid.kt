@@ -7,6 +7,24 @@ open class FilledCharGrid(cells: List<List<Char>>, empty: Char = '.') : FilledGr
 
     override fun transpose() = FilledCharGrid(cells.transpose(), empty)
     override fun rotate90() = FilledCharGrid(rotateCells90(), empty)
+    fun with(position: Position, value: Char): FilledCharGrid =
+        FilledCharGrid(cells.with(position, value), empty)
+}
+
+fun <E> List<List<E>>.with(position: Position, value: E): List<List<E>> {
+    val result = mutableListOf<List<E>>()
+    result.addAll(subList(0, position.row))
+    result.add(get(position.row).with(position.column, value))
+    result.addAll(subList(position.row + 1, size))
+    return result
+}
+
+fun <E> List<E>.with(position: Int, value: E): List<E>  {
+    val result = mutableListOf<E>()
+    result.addAll(subList(0, position))
+    result.add(value)
+    result.addAll(subList(position + 1, size))
+    return result
 }
 
 fun <C> toFilled(src: Map<Position, C>, empty: C, width: Int, height: Int): List<List<C>> =
@@ -24,7 +42,7 @@ open class FilledGrid<C>(
     val width = bounds.width
 
     init {
-        check(cells.all { it.size.toLong() == width }) { "expected length $width" }
+        check(cells.all { it.size == width }) { "expected length $width" }
     }
 
     val allPositions
@@ -40,25 +58,23 @@ open class FilledGrid<C>(
             }
         }
 
-    override fun row(r: Long): GridLine<C> =
-        if (bounds.hasRow(r)) GridList(r, cells[r.toInt()], empty) else EmptyLine(r, empty)
+    override fun row(r: Int): GridLine<C> =
+        if (bounds.hasRow(r)) GridList(r, cells[r], empty) else EmptyLine(r, empty)
 
-    override fun column(c: Long) = if (bounds.hasColumn(c)) ColumnGridLine(c.toInt()) else EmptyLine(c, empty)
+    override fun column(c: Int) = if (bounds.hasColumn(c)) ColumnGridLine(c) else EmptyLine(c, empty)
 
     override fun cell(p: Position) = cell(p.row, p.column)
     override fun cell(r: Int, c: Int) = if (r in bounds.rowRange && c in bounds.columnRange) cells[r][c] else empty
-    override fun cell(r: Long, c: Long) = cell(r.toInt(), c.toInt())
 
     private inner class ColumnGridLine(private val columnIndex: Int) : GridLine<C> {
-        private val size: Int = height.toInt()
+        private val size: Int = height
         private val rowRange = 0..<size
-        override val index: Long = columnIndex.toLong()
+        override val index: Int = columnIndex
         override val isEmpty: Boolean by lazy { rowRange.all { cell(it) == empty } }
-        override fun cell(idx: Long): C = cell(idx.toInt())
-        private fun cell(idx: Int): C = if (idx in rowRange) cells[idx][columnIndex] else empty
-        override fun findAll(predicate: (C) -> Boolean): Map<Long, C> = rowRange.mapNotNull { row ->
+        override fun cell(idx: Int): C = if (idx in rowRange) cells[idx][columnIndex] else empty
+        override fun findAll(predicate: (C) -> Boolean): Map<Int, C> = rowRange.mapNotNull { row ->
             val cell = cells[row][columnIndex]
-            if (predicate(cell)) (row.toLong() to cell) else null
+            if (predicate(cell)) (row to cell) else null
         }.toMap()
     }
 
@@ -96,16 +112,14 @@ open class FilledGrid<C>(
     }
 }
 
-private data class GridList<C>(override val index: Long, private val cells: List<C>, private val empty: C) :
+private data class GridList<C>(override val index: Int, private val cells: List<C>, private val empty: C) :
     GridLine<C> {
     private val size: Int = cells.size
     private val columnRange = 0..<size
     override val isEmpty: Boolean get() = cells.all { it == empty }
-    override fun cell(idx: Long): C = cell(idx.toInt())
-    fun cell(idx: Int): C = if (idx in columnRange) cells[idx] else empty
-
-    override fun findAll(predicate: (C) -> Boolean): Map<Long, C> = cells.mapIndexedNotNull { idx, cell ->
-        if (predicate(cell)) (idx.toLong() to cell) else null
+    override fun cell(idx: Int): C = if (idx in columnRange) cells[idx] else empty
+    override fun findAll(predicate: (C) -> Boolean): Map<Int, C> = cells.mapIndexedNotNull { idx, cell ->
+        if (predicate(cell)) (idx to cell) else null
     }.toMap()
 
     override fun toString(): String = cells.joinToString("")

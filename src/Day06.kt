@@ -1,3 +1,4 @@
+import kotlinx.coroutines.delay
 import utils.*
 
 fun main() {
@@ -9,13 +10,15 @@ fun main() {
     println(Day06(input).part2())
 }
 
-class Day06(private val input: String) {
+class Day06(private val grid: FilledCharGrid) {
+    constructor(input: String) : this(FilledCharGrid(input.lines()))
+
     fun part1(): Int {
-        val directionMap = findPath(FilledCharGrid(input.lines()))
+        val directionMap = findPath()
         return directionMap.count { it.value.isNotEmpty() }
     }
 
-    private fun findPath(grid: FilledCharGrid): Map<Position, Set<Direction>> {
+    private fun findPath(): Map<Position, Set<Direction>> {
         val map = mutableMapOf<Position, Set<Direction>>()
         var pos = grid.find('^')
         var direction = Direction.N
@@ -23,24 +26,25 @@ class Day06(private val input: String) {
             val known = map[pos] ?: emptySet()
             if (direction !in known) {
                 map[pos] = known + direction
-                while (grid[pos + direction] == '#') {
+                val nextPos = pos + direction
+                if (grid[nextPos] == '#')
                     direction = direction.rotateCW
-                }
-                pos += direction
+                else
+                    pos = nextPos
             }
         }
         return map
     }
 
-    private fun hasCycle(grid: FilledCharGrid): Boolean {
+    private fun FilledCharGrid.hasCycle(): Boolean {
         val map = mutableMapOf<Position, Set<Direction>>()
-        var pos = grid.find('^')
+        var pos = find('^')
         var direction = Direction.N
-        while (pos in grid) {
+        while (pos in this) {
             val known = map[pos] ?: emptySet()
             if (direction in known) return true
             map[pos] = known + direction
-            while (grid[pos + direction] == '#') {
+            while (this[pos + direction] == '#') {
                 direction = direction.rotateCW
             }
             pos += direction
@@ -48,9 +52,11 @@ class Day06(private val input: String) {
         return false
     }
 
-    fun part2(): Int = input.indices.filter { input[it] == '.' }.count { idx ->
-        val adjusted = StringBuilder(input).apply { this[idx] = '#' }.toString()
-        hasCycle(FilledCharGrid(adjusted.lines()))
+    fun part2(): Int {
+        val visitedPositions = findPath().keys
+        return visitedPositions.count { visitedPosition ->
+            grid[visitedPosition] == '.' && grid.with(visitedPosition, '#').hasCycle()
+        }
     }
 }
 

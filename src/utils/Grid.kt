@@ -4,9 +4,8 @@ interface Grid<C> {
     operator fun get(p: Position) = cell(p)
     fun cell(p: Position): C
     fun cell(r: Int, c: Int): C
-    fun cell(r: Long, c: Long): C
-    fun row(r: Long): GridLine<C>
-    fun column(c: Long): GridLine<C>
+    fun row(r: Int): GridLine<C>
+    fun column(c: Int): GridLine<C>
     fun forEachNonEmpty(action: (Position) -> Unit)
     fun countNonEmpty(predicate: (Position) -> Boolean): Int
     fun findAll(value: C): Set<Position> = findAll { cell -> cell == value }.keys
@@ -20,17 +19,17 @@ interface GridCell {
 }
 
 interface GridLine<C> {
-    val index: Long
+    val index: Int
     val isEmpty: Boolean
-    fun cell(idx: Long): C
-    operator fun get(idx: Long): C = cell(idx)
-    fun toList(size: Long) = (0..<size).map { cell(it) }
-    fun findAll(value: C): Set<Long> = findAll { cell -> cell == value }.keys
-    fun findAll(predicate: (C) -> Boolean): Map<Long, C>
+    fun cell(idx: Int): C
+    operator fun get(idx: Int): C = cell(idx)
+    fun toList(size: Int) = (0..<size).map { cell(it) }
+    fun findAll(value: C): Set<Int> = findAll { cell -> cell == value }.keys
+    fun findAll(predicate: (C) -> Boolean): Map<Int, C>
 }
 
-data class EmptyLine<C>(override val index: Long, private val empty: C) : GridLine<C> {
+data class EmptyLine<C>(override val index: Int, private val empty: C) : GridLine<C> {
     override val isEmpty: Boolean get() = true
-    override fun cell(idx: Long): C = empty
-    override fun findAll(predicate: (C) -> Boolean): Map<Long, C> = emptyMap()
+    override fun cell(idx: Int): C = empty
+    override fun findAll(predicate: (C) -> Boolean): Map<Int, C> = emptyMap()
 }
