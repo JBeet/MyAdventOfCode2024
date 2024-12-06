@@ -6,3 +6,5 @@ local.properties
 .gradle
 gradle
 gradlew*
+src/.aocToken
+src/.aocCache

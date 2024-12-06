@@ -1,3 +1,5 @@
+import utils.*
+
 fun main() {
     val testInput = readInput("Day05_test")
     verify(143, Day05(testInput).part1())

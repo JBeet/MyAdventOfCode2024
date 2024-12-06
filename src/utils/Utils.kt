@@ -1,3 +1,5 @@
+package utils
+
 import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
@@ -23,6 +25,14 @@ fun String.longs() = findWithRegex("""-?\d+""").map { it.toLong() }.toList()
 fun String.paragraphs(): List<String> = split(Regex("\\R\\R"))
 fun String.intLists(): List<List<Int>> = nonEmptyLines().map { it.ints() }
 fun String.longLists() = nonEmptyLines().map { it.longs() }
+
+@JvmName("transposeStrings")
+fun List<String>.transpose(): List<String> = this[0].indices.map { this.column(it) }
+fun List<String>.column(c: Int): String = buildString { this@column.forEach { s -> append(s[c]) } }
+
+@JvmName("transposeLists")
+fun <T> List<List<T>>.transpose(): List<List<T>> = this[0].indices.map { this.column(it) }
+fun <T> List<List<T>>.column(c: Int): List<T> = map { it[c] }
 
 fun <E> List<E>.sublistBefore(item: E, missingDelimiterValue: List<E> = this): List<E> {
     val pos = indexOf(item)

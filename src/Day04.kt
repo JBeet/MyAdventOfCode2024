@@ -1,3 +1,6 @@
+import utils.readInput
+import utils.verify
+
 fun main() {
     val testInput = readInput("Day04_test")
     val day04test = Day04(testInput)
