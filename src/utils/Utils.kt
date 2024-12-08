@@ -62,25 +62,24 @@ fun Long.concat(o: Long) = (toString() + o.toString()).toLong()
 fun <E> List<E>.combinations(): Sequence<List<E>> =
     if (isEmpty())
         sequenceOf(emptyList())
-    else
-        sequence {
-            val (item, remainder) = headToTail()
-            yieldAll(remainder.combinations())
-            yieldAll(remainder.combinations().map { listOf(item) + it })
-        }
+    else {
+        val (item, remainder) = headToTail()
+        remainder.combinations() + remainder.combinations().map { listOf(item) + it }
+    }
 
 fun <E> List<E>.combinationsOfSize(size: Int): Sequence<List<E>> = generateCombinationsOfSize(size, emptyList())
-fun <E> List<E>.generateCombinationsOfSize(size: Int, prefix: List<E>): Sequence<List<E>> =
+private fun <E> List<E>.generateCombinationsOfSize(size: Int, prefix: List<E>): Sequence<List<E>> =
     if (size == 0)
         sequenceOf(prefix)
-    else if (isEmpty())
+    else if (size > this.size)
         emptySequence()
-    else
-        sequence {
-            val (item, remainder) = headToTail()
-            yieldAll(remainder.generateCombinationsOfSize(size, prefix))
-            yieldAll(remainder.generateCombinationsOfSize(size - 1, prefix + item))
-        }
+    else if (size == this.size)
+        sequenceOf(prefix + this)
+    else {
+        val (item, remainder) = headToTail()
+        remainder.generateCombinationsOfSize(size, prefix) +
+                remainder.generateCombinationsOfSize(size - 1, prefix + item)
+    }
 
 fun <E> List<E>.headToTail(): Pair<E, List<E>> {
     val head = get(0)
@@ -94,8 +93,8 @@ private fun <E> MutableList<E>.generatePermutations(k: Int): Sequence<List<E>> =
     k == 0 -> sequenceOf(toList())
     k % 2 != 0 -> sequence {
         yieldAll(generatePermutations(k - 1))
-        (0..<k).forEach { i ->
-            swapIndex(i, k)
+        repeat(k) {
+            swapIndex(it, k)
             yieldAll(generatePermutations(k - 1))
         }
     }

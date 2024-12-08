@@ -12,6 +12,7 @@ interface Grid<C> {
     fun findAll(predicate: (C) -> Boolean): Map<Position, C>
     fun find(value: C): Position = findAll(value).single()
     fun transpose(): Grid<C>
+    operator fun contains(pos: Position): Boolean
 }
 
 interface GridCell {

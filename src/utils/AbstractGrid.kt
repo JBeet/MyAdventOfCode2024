@@ -37,7 +37,7 @@ abstract class AbstractGrid<C>(protected open val bounds: Bounds) : Grid<C> {
                 .filter { it in this@AbstractGrid }
     }
 
-    open operator fun contains(pos: Position) = pos in bounds
+    override operator fun contains(pos: Position) = pos in bounds
 
     abstract inner class TraverseConnections<R>(override val initialPosition: Position, override val initialValue: R) :
         GridTraverse<R> {
