@@ -17,11 +17,16 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
     .toString(16)
     .padStart(32, '0')
 
-
 fun String.nonEmptyLines(): List<String> = lines().filter { it.isNotBlank() }
 fun String.findWithRegex(pattern: String) = Regex(pattern).findAll(this).map { it.value }
-fun String.ints() = findWithRegex("""-?\d+""").map { it.toInt() }.toList()
-fun String.longs() = findWithRegex("""-?\d+""").map { it.toLong() }.toList()
+fun String.ints() = signedInts().also { list -> check(list.all { it > 0 }) }
+fun String.intsOrZero() = signedInts().also { list -> check(list.all { it >= 0 }) }
+fun String.signedInts(): List<Int> = bigIntegers().mapTo(mutableListOf()) { it.intValueExact() }
+fun String.longs() = signedLongs().also { longs -> check(longs.all { it > 0 }) }
+fun String.longsOrZero() = signedLongs().also { longs -> check(longs.all { it >= 0 }) }
+fun String.signedLongs(): List<Long> = bigIntegers().mapTo(mutableListOf()) { it.longValueExact() }
+
+fun String.bigIntegers() = findWithRegex("""-?\d+""").map { it.toBigInteger() }
 fun String.paragraphs(): List<String> = split(Regex("\\R\\R"))
 fun String.intLists(): List<List<Int>> = nonEmptyLines().map { it.ints() }
 fun String.longLists() = nonEmptyLines().map { it.longs() }
@@ -49,6 +54,59 @@ fun <E> MutableList<E>.swapIndex(indexA: Int, indexB: Int) {
     val temp = this[indexA]
     this[indexA] = this[indexB]
     this[indexB] = temp
+}
+
+fun Int.concat(o: Int) = (toString() + o.toString()).toInt()
+fun Long.concat(o: Long) = (toString() + o.toString()).toLong()
+
+fun <E> List<E>.combinations(): Sequence<List<E>> =
+    if (isEmpty())
+        sequenceOf(emptyList())
+    else
+        sequence {
+            val (item, remainder) = headToTail()
+            yieldAll(remainder.combinations())
+            yieldAll(remainder.combinations().map { listOf(item) + it })
+        }
+
+fun <E> List<E>.combinationsOfSize(size: Int): Sequence<List<E>> = generateCombinationsOfSize(size, emptyList())
+fun <E> List<E>.generateCombinationsOfSize(size: Int, prefix: List<E>): Sequence<List<E>> =
+    if (size == 0)
+        sequenceOf(prefix)
+    else if (isEmpty())
+        emptySequence()
+    else
+        sequence {
+            val (item, remainder) = headToTail()
+            yieldAll(remainder.generateCombinationsOfSize(size, prefix))
+            yieldAll(remainder.generateCombinationsOfSize(size - 1, prefix + item))
+        }
+
+fun <E> List<E>.headToTail(): Pair<E, List<E>> {
+    val head = get(0)
+    val tail = subList(1, size)
+    return head to tail
+}
+
+fun <E> Collection<E>.permutations(): Sequence<List<E>> = toMutableList().generatePermutations(size - 1)
+
+private fun <E> MutableList<E>.generatePermutations(k: Int): Sequence<List<E>> = when {
+    k == 0 -> sequenceOf(toList())
+    k % 2 != 0 -> sequence {
+        yieldAll(generatePermutations(k - 1))
+        (0..<k).forEach { i ->
+            swapIndex(i, k)
+            yieldAll(generatePermutations(k - 1))
+        }
+    }
+
+    else -> sequence {
+        yieldAll(generatePermutations(k - 1))
+        repeat(k) {
+            swapIndex(0, k)
+            yieldAll(generatePermutations(k - 1))
+        }
+    }
 }
 
 fun verify(expected: Long, actual: Int) {
