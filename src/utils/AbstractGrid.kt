@@ -6,6 +6,24 @@ abstract class AbstractGrid<C>(protected open val bounds: Bounds) : Grid<C> {
     open fun deltas(pos: Position, cell: C): Collection<Delta> =
         if (cell is GridCell) cell.directions else emptySet()
 
+    fun floodFill(
+        startingPosition: Position,
+        shouldContinue: (Position, Position) -> Boolean = { prevPosition, nextPosition ->
+            get(prevPosition) == get(nextPosition)
+        }
+    ): Set<Position> {
+        val visited = mutableSetOf<Position>()
+        val traverse = DeepRecursiveFunction<Position, Unit> { currentPosition ->
+            visited.add(currentPosition)
+            currentPosition.neighbours4.forEach { nextPosition ->
+                if (shouldContinue(currentPosition, nextPosition) && nextPosition !in visited)
+                    callRecursive(nextPosition)
+            }
+        }
+        traverse(startingPosition)
+        return visited
+    }
+
     interface GridTraverse<R> {
         val initialPosition: Position
         val initialValue: R
@@ -30,33 +48,7 @@ abstract class AbstractGrid<C>(protected open val bounds: Bounds) : Grid<C> {
         return target
     }
 
-    abstract inner class TraverseNESW<R>(override val initialPosition: Position, override val initialValue: R) :
-        GridTraverse<R> {
-        override fun nextPositions(pos: Position, curValue: R): Iterable<Position> =
-            listOf(Direction.N, Direction.E, Direction.S, Direction.W).map { pos + it.delta }
-                .filter { it in this@AbstractGrid }
-    }
-
     override operator fun contains(pos: Position) = pos in bounds
-
-    abstract inner class TraverseConnections<R>(override val initialPosition: Position, override val initialValue: R) :
-        GridTraverse<R> {
-        override fun nextPositions(pos: Position, curValue: R): Iterable<Position> = connections(pos)
-    }
-
-    fun <R> traverseConnections(
-        pos: Position, value: R, shouldUpdate: (R, R) -> Boolean, calculateNextValue: (Position, R) -> R
-    ) = traverse(object : TraverseConnections<R>(pos, value) {
-        override fun shouldUpdate(pos: Position, oldValue: R, curValue: R): Boolean = shouldUpdate(oldValue, curValue)
-        override fun calculateNextValue(pos: Position, oldValue: R): R = calculateNextValue(pos, oldValue)
-    })
-
-    fun <R : Any> traverseConnections(pos: Position, value: R, cellHandler: (Position, R) -> R?) =
-        traverse(object : TraverseConnections<R?>(pos, value) {
-            override fun shouldUpdate(pos: Position, oldValue: R?, curValue: R?) = curValue != null
-            override fun calculateNextValue(pos: Position, oldValue: R?): R? =
-                if (oldValue == null) null else cellHandler(pos, oldValue)
-        })
 
     fun forEachWithEmpty(action: (Position) -> Unit) = bounds.rowRange.forEach { rowIndex ->
         bounds.columnRange.forEach { colIndex -> action(Position(rowIndex, colIndex)) }

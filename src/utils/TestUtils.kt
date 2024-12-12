@@ -13,6 +13,10 @@ fun main() {
         setOf(listOf(2, 4, 7), listOf(2, 7, 4), listOf(4, 2, 7), listOf(4, 7, 2), listOf(7, 2, 4), listOf(7, 4, 2)),
         permutations
     )
+    assertEquals((0..10).toSet(), naturalNumberInts.takeWhile { it <= 10 }.toSet())
+    assertEquals((3L..7L).toSet(), naturalNumberLongs.drop(3).takeWhile { it <= 7 }.toSet())
+    assertEquals((1..10).toSet(), positiveIntegers.takeWhile { it <= 10 }.toSet())
+    assertEquals((1L..7L).toSet(), positiveLongs.takeWhile { it <= 7 }.toSet())
 
     val gridText = """o...
         |oo..
@@ -26,6 +30,25 @@ fun main() {
         setOf(Position(0, 0), Position(1, 0), Position(1, 1), Position(2, 2), Position(3, 3), Position(4, 3)),
         grid.findAll('o')
     )
+    val positions =
+        setOf(
+            Position(0, 0),
+            Position(1, 0),
+            Position(1, 1),
+            Position(3, 2),
+            Position(2, 3),
+            Position(3, 3),
+            Position(4, 4)
+        )
+    assertEquals(
+        setOf(
+            setOf(Position(0, 0), Position(1, 0), Position(1, 1)),
+            setOf(Position(3, 2), Position(2, 3), Position(3, 3)),
+            setOf(Position(4, 4))
+        ),
+        positions.areas()
+    )
+
 }
 
 fun <E> assertEquals(expected: E, actual: E) {

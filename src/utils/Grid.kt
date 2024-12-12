@@ -2,6 +2,7 @@ package utils
 
 interface Grid<C> {
     operator fun get(p: Position) = cell(p)
+    operator fun get(r: Int, c: Int) = cell(r, c)
     fun cell(p: Position): C
     fun cell(r: Int, c: Int): C
     fun row(r: Int): GridLine<C>

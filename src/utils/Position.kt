@@ -2,7 +2,7 @@ package utils
 
 import kotlin.math.abs
 
-data class Position(val row: Int, val column: Int) {
+data class Position(val row: Int, val column: Int) : Comparable<Position> {
     val rowBefore: Sequence<Position> = (0..<column).asSequence().map { Position(row, it) }
     val columnBefore: Sequence<Position> = (0..<row).asSequence().map { Position(it, column) }
 
@@ -17,6 +17,13 @@ data class Position(val row: Int, val column: Int) {
     fun rotate90(height: Int) = Position(column, height - 1 - row)
     fun rotate180(height: Int, width: Int) = Position(height - 1 - row, width - 1 - column)
     fun rotate270(width: Int) = Position(width - 1 - column, row)
+
+    val neighbours4 get() = Direction.entries.map { this + it }
+
+    override fun compareTo(other: Position): Int {
+        val cr = row.compareTo(other.row)
+        return if (cr == 0) column.compareTo(other.column) else cr
+    }
 
     override fun toString(): String = "($row,$column)"
 
@@ -52,6 +59,9 @@ enum class Direction(override val delta: Position) : Delta {
     val rotateCCW: Direction get() = -rotateCW
 }
 
+fun positionsFrom(position: Position, direction: Direction) =
+    naturalNumberInts.map { position + (direction.delta * it) }
+
 typealias Directions = Set<Direction>
 
 fun directions(s: String): Directions = s.mapTo(mutableSetOf()) { direction(it) }
@@ -70,5 +80,24 @@ enum class Direction8(override val delta: Position) : Delta {
         SE -> NW
         NW -> SE
         SW -> NE
+    }
+}
+
+
+fun Iterable<Position>.areas(): Set<Set<Position>> = buildAreas(this.toMutableList())
+
+private fun buildAreas(source: MutableList<Position>) = buildSet<Set<Position>> {
+    while (source.isNotEmpty()) {
+        add(buildSet {
+            val queue = mutableListOf(source.removeFirst())
+            while (queue.isNotEmpty()) {
+                val element = queue.removeFirst()
+                add(element)
+                element.neighbours4.forEach {
+                    if (source.remove(it))
+                        queue.add(it)
+                }
+            }
+        })
     }
 }

@@ -96,6 +96,16 @@ class CharGrid(private val text: String, private val empty: Char = '.') : Abstra
         newText[indexFromPosition(position.row, position.column)] = value
         return CharGrid(newText.toString(), empty)
     }
+
+    override fun toString() = buildString {
+        bounds.rowRange.forEach { rowIndex ->
+            bounds.columnRange.forEach { colIndex ->
+                val pos = Position(rowIndex, colIndex)
+                append(cellAsString(pos, cell(pos)))
+            }
+            append('\n')
+        }
+    }
 }
 
 private fun String.calculateBounds(): Bounds {

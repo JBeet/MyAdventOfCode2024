@@ -59,6 +59,11 @@ fun <E> MutableList<E>.swapIndex(indexA: Int, indexB: Int) {
 fun Int.concat(o: Int) = (toString() + o.toString()).toInt()
 fun Long.concat(o: Long) = (toString() + o.toString()).toLong()
 
+val naturalNumberInts: Sequence<Int> = generateSequence(0) { it + 1 }
+val naturalNumberLongs: Sequence<Long> = generateSequence(0L) { it + 1L }
+val positiveIntegers: Sequence<Int> = generateSequence(1) { it + 1 }
+val positiveLongs: Sequence<Long> = generateSequence(1L) { it + 1L }
+
 fun <E> List<E>.combinations(): Sequence<List<E>> =
     if (isEmpty())
         sequenceOf(emptyList())
