@@ -12,55 +12,22 @@ fun main() {
 class Day12(val grid: CharGrid) {
     constructor(input: String) : this(CharGrid(input))
 
-    private val regions = mutableListOf<Region>()
-
-    init {
-        enumerateRegions()
+    private val regions = grid.nonEmptyCells.groupBy({ it.second }, { it.first }).flatMap { (ch, positions) ->
+        positions.continuousAreas().map { Region(it) }
     }
 
-    fun part1(): Int = regions.sumOf { it.price }
+    fun part1(): Int = regions.sumOf { it.regularPrice }
     fun part2(): Int = regions.sumOf { it.discountedPrice }
-
-    private fun enumerateRegions() {
-        grid.nonEmptyCells.forEach { (p, ch) ->
-            if (regions.none { p in it })
-                regions.add(Region(ch, grid.floodFill(p).sorted()))
-        }
-    }
-
     override fun toString(): String = grid.toString()
 }
 
-data class Side(val side: Direction, val positions: Set<Position>)
-
-class Region(private val ch: Char, private val items: Collection<Position>) {
-    private val area: Int get() = items.size
-    private val perimeter: Int get() = items.sumOf { p -> 4 - p.neighbours4.count { n -> n in items } }
-    val price get() = area * perimeter
-
-    private val sides = mutableListOf<Side>()
-
-    init {
-        enumerateSides()
+class Region(private val positions: Collection<Position>) {
+    private val area = positions.size
+    private val perimeter = positions.sumOf { p -> 4 - p.neighbours4.count { n -> n in positions } }
+    val regularPrice = area * perimeter
+    private val nrOfSides = directions.sumOf { dir ->
+        positions.filter { pos -> (pos + dir) !in positions }.continuousAreas().size
     }
-
-    private val nrOfSides: Int = sides.size
     val discountedPrice get() = area * nrOfSides
-
-    private fun enumerateSides() {
-        items.forEach { pos ->
-            Direction.entries.filter { dir -> pos.isPartOfSide(dir) && !sideVisited(dir, pos) }.forEach { dir ->
-                val positions = positionsFrom(pos, dir.rotateCW).takeWhile { it.isPartOfSide(dir) } +
-                        positionsFrom(pos, dir.rotateCCW).takeWhile { it.isPartOfSide(dir) }
-                sides.add(Side(dir, positions.toSet()))
-            }
-        }
-    }
-
-    private fun Position.isPartOfSide(dir: Direction) = this in items && (this + dir) !in items
-
-    private fun sideVisited(d: Direction, p: Position) = sides.any { it.side == d && p in it.positions }
-    operator fun contains(p: Position): Boolean = p in items
-
-    override fun toString(): String = "Region[$ch] $items = $perimeter / $nrOfSides"
+    override fun toString(): String = "Region $positions = $perimeter / $nrOfSides"
 }

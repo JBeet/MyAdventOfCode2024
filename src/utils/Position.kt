@@ -59,6 +59,8 @@ enum class Direction(override val delta: Position) : Delta {
     val rotateCCW: Direction get() = -rotateCW
 }
 
+val directions = Direction.entries
+
 fun positionsFrom(position: Position, direction: Direction) =
     naturalNumberInts.map { position + (direction.delta * it) }
 
@@ -84,14 +86,14 @@ enum class Direction8(override val delta: Position) : Delta {
 }
 
 
-fun Iterable<Position>.areas(): Set<Set<Position>> = buildAreas(this.toMutableList())
+fun Iterable<Position>.continuousAreas(): Set<Set<Position>> = buildAreas(this.toMutableSet())
 
-private fun buildAreas(source: MutableList<Position>) = buildSet<Set<Position>> {
+private fun buildAreas(source: MutableSet<Position>) = buildSet<Set<Position>> {
     while (source.isNotEmpty()) {
         add(buildSet {
             val queue = mutableListOf(source.removeFirst())
             while (queue.isNotEmpty()) {
-                val element = queue.removeFirst()
+                val element = queue.removeAt(0)
                 add(element)
                 element.neighbours4.forEach {
                     if (source.remove(it))
@@ -101,3 +103,6 @@ private fun buildAreas(source: MutableList<Position>) = buildSet<Set<Position>> 
         })
     }
 }
+
+fun <E> MutableSet<E>.removeFirst(): E = iterator().removeNext()
+fun <E> MutableIterator<E>.removeNext(): E = next().also { remove() }

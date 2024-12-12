@@ -46,7 +46,7 @@ fun main() {
             setOf(Position(3, 2), Position(2, 3), Position(3, 3)),
             setOf(Position(4, 4))
         ),
-        positions.areas()
+        positions.continuousAreas()
     )
 
 }
