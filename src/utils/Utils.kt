@@ -64,6 +64,13 @@ val naturalNumberLongs: Sequence<Long> = generateSequence(0L) { it + 1L }
 val positiveIntegers: Sequence<Int> = generateSequence(1) { it + 1 }
 val positiveLongs: Sequence<Long> = generateSequence(1L) { it + 1L }
 
+fun leastCommonMultiple(a: Long, b: Long): Long = (a * b) / greatestCommonDivisor(a, b)
+tailrec fun greatestCommonDivisor(a: Long, b: Long): Long {
+    check(b > 0L) { "No GCD for $a, $b" }
+    val mod = a % b
+    return if (mod == 0L) b else greatestCommonDivisor(b, mod)
+}
+
 fun <E> List<E>.combinations(): Sequence<List<E>> =
     if (isEmpty())
         sequenceOf(emptyList())
