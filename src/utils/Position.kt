@@ -39,6 +39,11 @@ interface Delta {
     operator fun unaryMinus(): Delta
 }
 
+data class Velocity(val rowSpeed: Int, val colSpeed: Int) : Delta {
+    override val delta get() = Position(rowSpeed, colSpeed)
+    override fun unaryMinus() = Velocity(-rowSpeed, -colSpeed)
+}
+
 enum class Direction(override val delta: Position) : Delta {
     N(Position(-1, 0)), E(Position(0, +1)), S(Position(+1, 0)), W(Position(0, -1));
 
