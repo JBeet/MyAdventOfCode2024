@@ -12,7 +12,7 @@ fun main() {
 class Day12(val grid: CharGrid) {
     constructor(input: String) : this(CharGrid(input))
 
-    private val regions = grid.nonEmptyCells.groupBy({ it.second }, { it.first }).flatMap { (ch, positions) ->
+    private val regions = grid.nonEmptyCells.groupBy({ it.second }, { it.first }).flatMap { (_, positions) ->
         positions.continuousAreas().map { Region(it) }
     }
 
@@ -23,7 +23,7 @@ class Day12(val grid: CharGrid) {
 
 class Region(private val positions: Collection<Position>) {
     private val area = positions.size
-    private val perimeter = positions.sumOf { p -> 4 - p.neighbours4.count { n -> n in positions } }
+    private val perimeter = positions.sumOf { p -> p.neighbours4.count { n -> n !in positions } }
     val regularPrice = area * perimeter
     private val nrOfSides = directions.sumOf { dir ->
         positions.filter { pos -> (pos + dir) !in positions }.continuousAreas().size
