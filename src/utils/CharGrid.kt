@@ -108,7 +108,7 @@ class CharGrid(private val text: String, private val empty: Char = '.') : Abstra
     }
 }
 
-private fun String.calculateBounds(): Bounds {
+fun String.calculateBounds(): ZeroBasedBounds {
     val linePos = indexOf('\n')
     val height = (length + 1) / (linePos + 1)
     return ZeroBasedBounds(height, linePos)

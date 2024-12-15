@@ -54,6 +54,8 @@ enum class Direction(override val delta: Position) : Delta {
         W -> E
     }
 
+    val isEW: Boolean get() = this == E || this == W
+    val isNS: Boolean get() = this == N || this == S
     val rotateCW: Direction
         get() = when (this) {
             N -> E
