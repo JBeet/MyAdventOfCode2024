@@ -23,22 +23,6 @@ object Day13 {
     fun part2(input: String) = parse(input).map { it.part2() }.sumOf { it.minCostNoLimit ?: 0 }
 }
 
-private fun Sequence<Long>.toRepeating(): Sequence<Long> = sequence {
-    val iter = iterator()
-    if (!iter.hasNext())
-        return@sequence
-    val first = iter.next()
-    yield(first)
-    if (!iter.hasNext())
-        return@sequence
-    var current = iter.next()
-    val delta = current - first
-    while (true) {
-        yield(current)
-        current += delta
-    }
-}
-
 data class Puzzle13(val aX: Long, val aY: Long, val bX: Long, val bY: Long, val pX: Long, val pY: Long) {
     private val solutions = sequence {
         val lcmX = leastCommonMultiple(aX, bX)

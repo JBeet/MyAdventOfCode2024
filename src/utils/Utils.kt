@@ -64,6 +64,22 @@ val naturalNumberLongs: Sequence<Long> = generateSequence(0L) { it + 1L }
 val positiveIntegers: Sequence<Int> = generateSequence(1) { it + 1 }
 val positiveLongs: Sequence<Long> = generateSequence(1L) { it + 1L }
 
+fun Sequence<Long>.toRepeating(): Sequence<Long> = sequence {
+    val iter = iterator()
+    if (!iter.hasNext())
+        return@sequence
+    val first = iter.next()
+    yield(first)
+    if (!iter.hasNext())
+        return@sequence
+    var current = iter.next()
+    val delta = current - first
+    while (true) {
+        yield(current)
+        current += delta
+    }
+}
+
 fun leastCommonMultiple(a: Long, b: Long): Long = (a * b) / greatestCommonDivisor(a, b)
 tailrec fun greatestCommonDivisor(a: Long, b: Long): Long {
     check(b > 0L) { "No GCD for $a, $b" }
