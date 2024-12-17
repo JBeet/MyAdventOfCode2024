@@ -63,6 +63,7 @@ val naturalNumberInts: Sequence<Int> = generateSequence(0) { it + 1 }
 val naturalNumberLongs: Sequence<Long> = generateSequence(0L) { it + 1L }
 val positiveIntegers: Sequence<Int> = generateSequence(1) { it + 1 }
 val positiveLongs: Sequence<Long> = generateSequence(1L) { it + 1L }
+fun Iterable<Long>.addToAll(delta: Long) = map { it + delta }
 
 fun Sequence<Long>.toRepeating(): Sequence<Long> = sequence {
     val iter = iterator()

@@ -33,22 +33,27 @@ object Day17 {
         val equations =
             completed.first().output.filterIsInstance<Value.Unknown>()
                 .mapIndexed { index, v -> v.calculation to program[index] }
-        println(equations.size)
-        if (equations.size <= 8)
-            return naturalNumberLongs.filter {
-                matches(equations, it)
-            }.first()
-        return naturalNumberLongs.flatMap { listOf(it * 33554432 + 23948989, it * 33554432 + 23949245) }
-            .filter { // observed repeating sequence, checked binary
-                matches(equations, it)
-            }.first()
+        return filteredBinaryNumberSequence(equations) { (cv, target), value ->
+            matches(cv, value, target)
+        }.sequence().first()
     }
 
-    private val spaces = " ".repeat(64)
-    private fun Long.toBinaryString(): String = (spaces + toString(2)).takeLast(64)
+    private fun <T> filteredBinaryNumberSequence(filters: Iterable<T>, filter: (T, Long) -> Boolean): PossibleNumbers =
+        filters.fold(PossibleNumbers.Repeat(setOf(0L), 1L)) { src, f ->
+            buildWithEquation(src) { filter(f, it) }
+        }
 
-    private fun matches(equations: List<Pair<CalculatedValue, Int>>, value: Long): Boolean {
-        return equations.all { (cv, target) -> matches(cv, value, target) }
+    private fun buildWithEquation(src: PossibleNumbers.Repeat, filter: (Long) -> Boolean): PossibleNumbers.Repeat {
+        val first = src.base.filter(filter)
+        if (first.isEmpty())
+            return buildWithEquation(src.prepareCycles(2), filter)
+        if ((0L..255L).all { cycleNr -> // check 256 cycles
+                val tested = src.base.addToAll(cycleNr * src.cycleLength).filter(filter)
+                tested.size == first.size && tested.addToAll(-cycleNr * src.cycleLength) == first
+            }) {
+            return PossibleNumbers.Repeat(first.toSet(), src.cycleLength)
+        }
+        return buildWithEquation(src.prepareCycles(2), filter)
     }
 
     private fun matches(cv: CalculatedValue, value: Long, target: Int) =
@@ -56,12 +61,7 @@ object Day17 {
 
     private fun calculate(cv: CalculatedValue, value: Long): Long = when (cv) {
         CalculatedValue.InitialValue -> value
-        is CalculatedValue.IsZero -> calculate(cv.base, value).also {
-            if ((it != 0L) == cv.isZero) {
-                println("Expected ${cv.isZero} but was $it for $value")
-            }
-        }
-
+        is CalculatedValue.IsZero -> calculate(cv.base, value)
         is CalculatedValue.Mod8 -> calculate(cv.base, value) % 8
         is CalculatedValue.ShrKnown -> calculate(cv.base, value) shr cv.operand
         is CalculatedValue.ShrUnknown -> calculate(cv.base, value) shr calculate(cv.operand, value).toInt()
@@ -69,19 +69,10 @@ object Day17 {
         is CalculatedValue.XorUnknown -> calculate(cv.base, value) xor calculate(cv.operand, value)
     }
 
-    fun shiftLeftOptions(value: Long, amount: Int): Set<Long> {
-        val base = value shl amount
-        return (base..<(base + (1 shl amount))).toSet()
-    }
-
-    fun shiftLeftOptions(values: Iterable<Long>, amount: Int) =
-        values.flatMapTo(mutableSetOf()) { shiftLeftOptions(it, amount) }
-
     sealed interface CalculatedValue {
         fun xor(v: Long): CalculatedValue = XorKnown(this, v)
 
-        data object InitialValue : CalculatedValue {
-        }
+        data object InitialValue : CalculatedValue
 
         data class XorKnown(val base: CalculatedValue, val operand: Long) : CalculatedValue {
             override fun xor(v: Long): CalculatedValue = XorKnown(base, operand xor v)
@@ -104,7 +95,7 @@ object Day17 {
             override fun toString(): String = "($base mod 8)"
         }
 
-        class IsZero(val base: CalculatedValue, val isZero: Boolean) : CalculatedValue {
+        class IsZero(val base: CalculatedValue, private val isZero: Boolean) : CalculatedValue {
             override fun toString(): String = if (isZero) "($base == 0)" else "($base != 0)"
         }
     }
