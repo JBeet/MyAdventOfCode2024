@@ -24,7 +24,6 @@ object Day16 {
         val startingPosition = grid.find('S')
         val start = Step(startingPosition, Direction.E)
         val endPoint = grid.find('E')
-        println(grid.height)
         val steps = mutableMapOf(start to Path(0, setOf(startingPosition)))
         val visited = mutableSetOf<Step>()
         while (steps.isNotEmpty()) {
