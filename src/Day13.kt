@@ -24,39 +24,31 @@ object Day13 {
 }
 
 data class Puzzle13(val aX: Long, val aY: Long, val bX: Long, val bY: Long, val pX: Long, val pY: Long) {
-    private val solutions = sequence {
-        val lcmX = leastCommonMultiple(aX, bX)
-        val lcmY = leastCommonMultiple(aY, bY)
-        val xA =
-            naturalNumberLongs.take(lcmX.toInt() * 2).filter { it: Long -> (pX - it * aX) % bX == 0L }.toRepeating()
-        val xyA = xA.take(lcmY.toInt() * 2).filter { it: Long -> (pY - it * aY) % bY == 0L }.toRepeating()
-        val valid = xyA.map { it to b(it) }
-        val list = valid.take(2).toList()
-        if (list.size < 2) {
-            list.forEach { yield(it) }
-        } else {
-            val (first, second) = list
-            val diffA = second.a - first.a
-            val diffB = second.b - first.b
-            val diffY = second.y - first.y
-            val targetIndex = (pY - first.y) / diffY
-            val a = first.a + (targetIndex * diffA)
-            val b = first.b + (targetIndex * diffB)
-            if (a >= 0 && b >= 0 && (a * aY + b * bY == pY))
-                yield(a to b)
-        }
+    private val solution = solve {
+        variable("a") * aX + variable("b") * bX eq pX
+        variable("a") * aY + variable("b") * bY eq pY
     }
+    private val a = solution["a"]
+    private val b = solution["b"]
 
-    private fun a(b: Long) = (pX - b * bX) / aX
-    private fun b(a: Long) = (pX - a * aX) / bX
-    private val Pair<Long, Long>.a get() = first
-    private val Pair<Long, Long>.b get() = second
-    private val Pair<Long, Long>.x get() = x(first, second)
-    private val Pair<Long, Long>.y get() = y(first, second)
-    private fun x(a: Long, b: Long) = a * aX + b * bX
-    private fun y(a: Long, b: Long) = a * aY + b * bY
+    val minCost: Long?
+        get() {
+            if (a.denominator == 1L && b.denominator == 1L) {
+                val lA = a.toLong()
+                val lB = b.toLong()
+                return if (lA in 0..100 && lB in 0..100) 3L * lA + lB else null
+            }
+            return null
+        }
+    val minCostNoLimit: Long?
+        get() {
+            if (a.denominator == 1L && b.denominator == 1L) {
+                val lA = a.toLong()
+                val lB = b.toLong()
+                return if (lA >= 0 && lB >= 0) 3 * lA + lB else null
+            }
+            return null
+        }
 
-    val minCost: Long? get() = solutions.filter { (a, b) -> a <= 100 && b <= 100 }.minOfOrNull { (a, b) -> 3 * a + b }
-    val minCostNoLimit get() = solutions.minOfOrNull { (a, b) -> 3 * a + b }
     fun part2() = copy(pX = pX + 10000000000000L, pY = pY + 10000000000000L)
 }
