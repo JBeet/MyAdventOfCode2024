@@ -18,104 +18,202 @@ object Day17 {
         val (sRegisters, sProgram) = input.paragraphs()
         val (a, b, c) = sRegisters.lines().map { it.longsOrZero().first() }
         val program = sProgram.intsOrZero()
-        val out = mutableListOf<Int>()
-        Computer(a, b, c, program) {
-            out.add(it)
-        }.execute()
-        return out.joinToString(",")
+        val computer = Computer(program) { true }
+        val completed = computer.execute(Registers(a, b, c)).toList()
+        return completed.first().output.joinToString(",") { (it as Value.Known).v.toString() }
     }
 
     fun part2(input: String): Long {
         val (sRegisters, sProgram) = input.paragraphs()
-        val (a, b, c) = sRegisters.lines().map { it.longsOrZero().first() }
+        val (_, b, c) = sRegisters.lines().map { it.longsOrZero().first() }
         val program = sProgram.intsOrZero()
-        return naturalNumberLongs.filter { newRegA ->
-            var i = 0
-            val computer = Computer(newRegA, b, c, program) {
-                if (i > 7)
-                    println("newRegA: $newRegA checking $it at position $i")
-                i < program.size && (program[i++] == it)
-            }
-            computer.execute()
-//            println(computer.ip)
-            i == program.size && computer.ip != Int.MAX_VALUE
-        }.first()
+        val computer = Computer(program) { it.output.size <= program.size }
+        val a = Value.Unknown(CalculatedValue.InitialValue)
+        val completed = computer.execute(Registers(a, b, c)).filter { it.output.size == program.size }.toList()
+        val equations =
+            completed.first().output.filterIsInstance<Value.Unknown>()
+                .mapIndexed { index, v -> v.calculation to program[index] }
+        println(equations.size)
+        if (equations.size <= 8)
+            return naturalNumberLongs.filter {
+                matches(equations, it)
+            }.first()
+        return naturalNumberLongs.flatMap { listOf(it * 33554432 + 23948989, it * 33554432 + 23949245) }
+            .filter { // observed repeating sequence, checked binary
+                matches(equations, it)
+            }.first()
     }
 
-    class Computer(var a: Long, var b: Long, var c: Long, val program: List<Int>, val out: (Int) -> Boolean) {
-        var ip = 0
+    private val spaces = " ".repeat(64)
+    private fun Long.toBinaryString(): String = (spaces + toString(2)).takeLast(64)
 
-        fun execute() {
-            while (ip < program.size - 1) {
-                val instruction = Instruction.entries[program[ip]]
-                execute(instruction, program[ip + 1])
+    private fun matches(equations: List<Pair<CalculatedValue, Int>>, value: Long): Boolean {
+        return equations.all { (cv, target) -> matches(cv, value, target) }
+    }
+
+    private fun matches(cv: CalculatedValue, value: Long, target: Int) =
+        calculate(cv, value) == target.toLong()
+
+    private fun calculate(cv: CalculatedValue, value: Long): Long = when (cv) {
+        CalculatedValue.InitialValue -> value
+        is CalculatedValue.IsZero -> calculate(cv.base, value).also {
+            if ((it != 0L) == cv.isZero) {
+                println("Expected ${cv.isZero} but was $it for $value")
             }
         }
 
-        fun part2(input: String): Int {
-            TODO("Not yet implemented")
+        is CalculatedValue.Mod8 -> calculate(cv.base, value) % 8
+        is CalculatedValue.ShrKnown -> calculate(cv.base, value) shr cv.operand
+        is CalculatedValue.ShrUnknown -> calculate(cv.base, value) shr calculate(cv.operand, value).toInt()
+        is CalculatedValue.XorKnown -> calculate(cv.base, value) xor cv.operand
+        is CalculatedValue.XorUnknown -> calculate(cv.base, value) xor calculate(cv.operand, value)
+    }
+
+    fun shiftLeftOptions(value: Long, amount: Int): Set<Long> {
+        val base = value shl amount
+        return (base..<(base + (1 shl amount))).toSet()
+    }
+
+    fun shiftLeftOptions(values: Iterable<Long>, amount: Int) =
+        values.flatMapTo(mutableSetOf()) { shiftLeftOptions(it, amount) }
+
+    sealed interface CalculatedValue {
+        fun xor(v: Long): CalculatedValue = XorKnown(this, v)
+
+        data object InitialValue : CalculatedValue {
         }
 
-        private fun execute(instruction: Instruction, operand: Int) {
+        data class XorKnown(val base: CalculatedValue, val operand: Long) : CalculatedValue {
+            override fun xor(v: Long): CalculatedValue = XorKnown(base, operand xor v)
+            override fun toString(): String = "($base xor $operand)"
+        }
+
+        class XorUnknown(val base: CalculatedValue, val operand: CalculatedValue) : CalculatedValue {
+            override fun toString(): String = "($base xor $operand)"
+        }
+
+        data class ShrKnown(val base: CalculatedValue, val operand: Int) : CalculatedValue {
+            override fun toString(): String = "($base shr $operand)"
+        }
+
+        data class ShrUnknown(val base: CalculatedValue, val operand: CalculatedValue) : CalculatedValue {
+            override fun toString(): String = "($base shr $operand)"
+        }
+
+        class Mod8(val base: CalculatedValue) : CalculatedValue {
+            override fun toString(): String = "($base mod 8)"
+        }
+
+        class IsZero(val base: CalculatedValue, val isZero: Boolean) : CalculatedValue {
+            override fun toString(): String = if (isZero) "($base == 0)" else "($base != 0)"
+        }
+    }
+
+    sealed interface Value {
+        infix fun shr(o: Value): Value
+        infix fun xor(o: Value): Value
+        fun mod8(): Value
+        fun <T> ifZero(ifZero: (Value) -> T, ifNotZero: (Value) -> T): List<T>
+
+        @JvmInline
+        value class Known(val v: Long) : Value {
+            constructor(i: Int) : this(i.toLong())
+
+            override fun shr(o: Value) = when (o) {
+                is Known -> Known(v shr o.v.toInt())
+                is Unknown -> TODO()
+            }
+
+            override fun xor(o: Value): Value = when (o) {
+                is Known -> Known(v xor o.v)
+                is Unknown -> TODO()
+            }
+
+            override fun mod8(): Value = Known(v % 8)
+            override fun <T> ifZero(ifZero: (Value) -> T, ifNotZero: (Value) -> T): List<T> =
+                if (v == 0L) listOf(ifZero(this)) else listOf(ifNotZero(this))
+        }
+
+        class Unknown(val calculation: CalculatedValue) : Value {
+            override fun shr(o: Value): Value = when (o) {
+                is Known -> Unknown(CalculatedValue.ShrKnown(calculation, o.v.toInt()))
+                is Unknown -> Unknown(CalculatedValue.ShrUnknown(calculation, o.calculation))
+            }
+
+            override fun xor(o: Value): Value = when (o) {
+                is Known -> Unknown(calculation.xor(o.v))
+                is Unknown -> Unknown(CalculatedValue.XorUnknown(calculation, o.calculation))
+            }
+
+            override fun mod8(): Value = Unknown(CalculatedValue.Mod8(calculation))
+
+            override fun <T> ifZero(ifZero: (Value) -> T, ifNotZero: (Value) -> T): List<T> {
+                return listOf(
+                    ifZero(Unknown(CalculatedValue.IsZero(calculation, true))),
+                    ifNotZero(Unknown(CalculatedValue.IsZero(calculation, false)))
+                )
+            }
+
+            override fun toString(): String = "Unknown[$calculation]"
+        }
+    }
+
+    enum class Instruction {
+        ADV, BXL, BST, JNZ, BXC, OUT, BDV, CDV;
+    }
+
+    data class Registers(
+        val a: Value,
+        val b: Value,
+        val c: Value,
+        val ip: Int,
+        val output: List<Value>
+    ) {
+        constructor(a: Long, b: Long, c: Long) : this(Value.Known(a), b, c)
+        constructor(a: Value, b: Long, c: Long) : this(a, Value.Known(b), Value.Known(c), 0, emptyList())
+
+        fun execute(instruction: Instruction, operand: Int) = sequence {
             when (instruction) {
-                Instruction.ADV -> {
-                    a = a shr comboValue(operand).toInt()
-                    ip += 2
-                }
+                Instruction.ADV -> yield(copy(ip = ip + 2, a = a shr comboValue(operand)))
+                Instruction.BXL -> yield(copy(ip = ip + 2, b = b xor Value.Known(operand)))
+                Instruction.BST -> yield(copy(ip = ip + 2, b = comboValue(operand).mod8()))
+                Instruction.JNZ -> yieldAll(
+                    a.ifZero(
+                        { copy(a = it, ip = ip + 2) },
+                        { copy(a = it, ip = operand) })
+                )
 
-                Instruction.BXL -> {
-                    b = b xor operand.toLong()
-                    ip += 2
-                }
-
-                Instruction.BST -> {
-                    b = comboValue(operand) % 8
-                    ip += 2
-                }
-
-                Instruction.JNZ -> {
-                    if (a != 0L)
-                        ip = operand
-                    else
-                        ip += 2
-                }
-
-                Instruction.BXC -> {
-                    b = b xor c
-                    ip += 2
-                }
-
-                Instruction.OUT -> {
-                    val result = out(comboValue(operand).toInt() % 8)
-                    if (result)
-                        ip += 2
-                    else
-                        ip = Int.MAX_VALUE
-                }
-
-                Instruction.BDV -> {
-                    b = a shr comboValue(operand).toInt()
-                    ip += 2
-                }
-
-                Instruction.CDV -> {
-                    c = a shr comboValue(operand).toInt()
-                    ip += 2
-                }
+                Instruction.BXC -> yield(copy(ip = ip + 2, b = b xor c))
+                Instruction.OUT -> yield(copy(ip = ip + 2, output = output + comboValue(operand).mod8()))
+                Instruction.BDV -> yield(copy(ip = ip + 2, b = a shr comboValue(operand)))
+                Instruction.CDV -> yield(copy(ip = ip + 2, c = a shr comboValue(operand)))
             }
         }
 
-        private fun comboValue(operand: Int): Long =
+        private fun comboValue(operand: Int): Value =
             when (operand) {
-                0, 1, 2, 3 -> operand.toLong()
+                0, 1, 2, 3 -> Value.Known(operand)
                 4 -> a
                 5 -> b
                 6 -> c
                 else -> error("Unexpected combo operand $operand")
             }
+    }
 
-        enum class Instruction {
-            ADV, BXL, BST, JNZ, BXC, OUT, BDV, CDV;
+    class Computer(private val program: List<Int>, private val verify: (Registers) -> Boolean) {
+        fun execute(registers: Registers) = sequence {
+            val activeThreads = mutableListOf(registers)
+            while (activeThreads.isNotEmpty()) {
+                val thread = activeThreads.removeFirst()
+                if (thread.ip < program.size - 1) {
+                    val instruction = Instruction.entries[program[thread.ip]]
+                    thread.execute(instruction, program[thread.ip + 1]).forEach {
+                        if (verify(it))
+                            activeThreads.add(it)
+                    }
+                } else
+                    yield(thread)
+            }
         }
     }
 }
