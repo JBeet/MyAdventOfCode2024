@@ -74,6 +74,8 @@ sealed interface Expression {
             return numerator.toInt()
         }
 
+        fun asLong(): Long? = if (denominator != 1L) null else numerator
+
         fun toLong(): Long {
             check(denominator == 1L) { "no long value for $numerator / $denominator" }
             return numerator
@@ -87,7 +89,7 @@ sealed interface Expression {
         var knownValue = false
         private var value: Constant? = null
         private val listeners = mutableListOf<ValueHandler>()
-        fun notify(handler: ValueHandler) {
+        fun ifResolved(handler: ValueHandler) {
             val v = value
             if (v == null)
                 listeners.add(handler)
@@ -318,17 +320,14 @@ private class SimpleEquations : ProblemBuilder<Expression>, Solution {
 
     override fun variable(name: String): Expression =
         knownVariables.getOrPut(name) {
-            val variable = Expression.Variable(name)
-            variable.notify { updateEquations() }
-            println("Created $variable")
-            variable
+            Expression.Variable(name).apply {
+                ifResolved { updateEquations() }
+            }
         }
 
     private fun updateEquations() {
-        println("updating equations")
         equations.replaceAll { updateEquation(it) }
         equations.removeIf { it.isIdentity() }
-        println("updated equations to $equations")
     }
 
     private fun updateEquation(e: Equation): Equation =

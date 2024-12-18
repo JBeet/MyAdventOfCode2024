@@ -20,7 +20,7 @@ object Day13 {
 
     fun parse(input: String) = input.paragraphs().map { Puzzle13(it) }
     fun part1(input: String) = parse(input).sumOf { it.minCost ?: 0 }
-    fun part2(input: String) = parse(input).map { it.part2() }.sumOf { it.minCostNoLimit ?: 0 }
+    fun part2(input: String) = parse(input).map { it.part2() }.sumOf { it.minCost ?: 0 }
 }
 
 data class Puzzle13(val aX: Long, val aY: Long, val bX: Long, val bY: Long, val pX: Long, val pY: Long) {
@@ -28,26 +28,12 @@ data class Puzzle13(val aX: Long, val aY: Long, val bX: Long, val bY: Long, val 
         variable("a") * aX + variable("b") * bX eq pX
         variable("a") * aY + variable("b") * bY eq pY
     }
-    private val a = solution["a"]
-    private val b = solution["b"]
 
     val minCost: Long?
         get() {
-            if (a.denominator == 1L && b.denominator == 1L) {
-                val lA = a.toLong()
-                val lB = b.toLong()
-                return if (lA in 0..100 && lB in 0..100) 3L * lA + lB else null
-            }
-            return null
-        }
-    val minCostNoLimit: Long?
-        get() {
-            if (a.denominator == 1L && b.denominator == 1L) {
-                val lA = a.toLong()
-                val lB = b.toLong()
-                return if (lA >= 0 && lB >= 0) 3 * lA + lB else null
-            }
-            return null
+            val a = solution["a"].asLong() ?: return null
+            val b = solution["b"].asLong() ?: return null
+            return if (a >= 0 && b >= 0) 3 * a + b else null
         }
 
     fun part2() = copy(pX = pX + 10000000000000L, pY = pY + 10000000000000L)
