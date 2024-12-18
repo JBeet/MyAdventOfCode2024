@@ -63,23 +63,30 @@ val naturalNumberInts: Sequence<Int> = generateSequence(0) { it + 1 }
 val naturalNumberLongs: Sequence<Long> = generateSequence(0L) { it + 1L }
 val positiveIntegers: Sequence<Int> = generateSequence(1) { it + 1 }
 val positiveLongs: Sequence<Long> = generateSequence(1L) { it + 1L }
+
 fun Iterable<Long>.addToAll(delta: Long) = map { it + delta }
 
-fun Sequence<Long>.toRepeating(): Sequence<Long> = sequence {
-    val iter = iterator()
-    if (!iter.hasNext())
-        return@sequence
-    val first = iter.next()
-    yield(first)
-    if (!iter.hasNext())
-        return@sequence
-    var current = iter.next()
-    val delta = current - first
-    while (true) {
-        yield(current)
-        current += delta
+fun Sequence<Long>.toRepeating(): Sequence<Long> = iterator().toRepeating()
+
+private fun Iterator<Long>.toRepeating(): Sequence<Long> {
+    val minimalCycleCount = 20
+    val values = mutableListOf<Long>()
+    val maxDetectedCycleLength = 10_000
+    (2..maxDetectedCycleLength).forEach { cycleLength ->
+        val requestedSize = cycleLength * minimalCycleCount
+        while (hasNext() && values.size < requestedSize) values.add(next())
+        if (!hasNext()) return values.asSequence()
+        val difference = values[cycleLength] - values[0]
+        if ((0..<values.size - cycleLength).all { values[it + cycleLength] - values[it] == difference }) {
+            val repeatingValues = values.take(cycleLength)
+            return repeatingSequence(repeatingValues, difference)
+        }
     }
+    error("no cycle for ${values.take(100)}")
 }
+
+private fun repeatingSequence(values: List<Long>, difference: Long): Sequence<Long> =
+    naturalNumberLongs.map { cycleNr -> cycleNr * difference }.flatMap { offset -> values.addToAll(offset) }
 
 fun leastCommonMultiple(a: Long, b: Long): Long = (a * b) / greatestCommonDivisor(a, b)
 tailrec fun greatestCommonDivisor(a: Long, b: Long): Long {
