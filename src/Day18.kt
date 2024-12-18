@@ -1,4 +1,5 @@
 import utils.*
+import kotlin.time.measureTime
 
 fun main() {
     val testInput = readInput("Day18_test")
@@ -20,14 +21,53 @@ object Day18 {
     }
 
     fun part2(input: String, size: Int): String {
-        val positions: List<Position> = input.lines().map { it.intsOrZero() }.map { (x, y) -> Position(y, x) }
-        var time = size
-        while (true) {
-            val activeBlocks = positions.take(time++)
-            val grid = ByteGrid(activeBlocks, size, size)
-            val path = grid.findPath() ?: return activeBlocks.last().let { it.column.toString() + "," + it.row }
-//            println("$time: " + path.score)
+        val blocked: List<Position> = input.lines().map { it.intsOrZero() }.map { (x, y) -> Position(y, x) }
+        timeIt(blocked, size)
+        return solvePart2(blocked, size)
+    }
+
+    private fun timeIt(blocked: List<Position>, size: Int) {
+        //warm up
+        repeat(2_000) {
+            solvePart2(blocked, size)
         }
+        val iterations = 20_000
+        measureTime {
+            repeat(iterations) {
+                solvePart2(blocked, size)
+            }
+        }.also { println("$iterations in $it time = ${it / iterations}") }
+    }
+
+    private fun solvePart2(blocked: List<Position>, size: Int): String {
+        val blockMap = blocked.mapIndexed { index, position -> position to index }.toMap()
+        val bounds = ZeroBasedBounds(size, size)
+        val visited = mutableSetOf<Position>()
+        val edges = mutableListOf<Int>()
+        var lastEdge = blocked.size
+        val target = Position(size - 1, size - 1)
+        var lastRemovedPosition = target
+        val queue = mutableListOf(Position(0, 0))
+        while (target !in queue) {
+            val active = queue.removeLast()
+            visited.add(active)
+            for (nextPosition in active.neighbours4) {
+                if (nextPosition !in visited && nextPosition in bounds) {
+                    val pos = blockMap.getOrDefault(nextPosition, -1)
+                    if (pos in 0..<lastEdge)
+                        edges.add(pos)
+                    else
+                        queue.add(nextPosition)
+                }
+            }
+            if (queue.isEmpty()) {
+                lastEdge = edges.max()
+                edges.remove(lastEdge)
+                lastRemovedPosition = blocked[lastEdge]
+                queue.add(lastRemovedPosition)
+            }
+        }
+        return lastRemovedPosition.column.toString() + "," + lastRemovedPosition.row
     }
 
     data class Path(val score: Int, val positions: Set<Position>)
