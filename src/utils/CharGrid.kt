@@ -72,7 +72,7 @@ class CharGrid(private val text: String, private val empty: Char = '.') : Abstra
 
     override fun find(value: Char): Position {
         val index = text.indexOf(value)
-        require(index > 0) { "character $value not found in $this" }
+        require(index >= 0) { "character $value not found in $this" }
         return positionFromIndex(index)
     }
 
