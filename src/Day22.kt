@@ -29,7 +29,6 @@ object Day22 {
 
     fun part2(input: String): Int {
         val baseNumbers = input.longs()
-        println(baseNumbers.size)
         val prices = baseNumbers.map { base ->
             secretNumbers(base).take(2001).map { (it % 10).toInt() }.toList()
         }

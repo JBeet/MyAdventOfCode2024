@@ -15,8 +15,8 @@ fun main() {
 }
 
 object Day21 {
-    enum class Directional(val distance: Int) {
-        UP(1), RIGHT(1), DOWN(2), LEFT(3), ACTION(0);
+    enum class Directional {
+        UP, RIGHT, DOWN, LEFT, ACTION;
 
         companion object {
             operator fun get(char: Char) = when (char) {
